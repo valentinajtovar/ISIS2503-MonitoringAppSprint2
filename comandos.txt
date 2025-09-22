@@ -1,0 +1,144 @@
+git rev-parse --is-inside-work-tree
+
+# 2. Revisa que tengas el remoto configurado
+git remote -v
+
+# 3. Si no aparece tu repo de GitHub, agrégalo:
+git remote add origin https://github.com/valentinajtovar/ISIS2503-MonitoringAppSprint2.git
+
+# 4. Trae los cambios de la rama master desde GitHub
+git fetch origin
+
+# 5. Cámbiate a la rama master (la que muestra tu repo en GitHub)
+git checkout master
+
+# 6. Actualiza tu proyecto
+git pull origin master
+
+
+#inicio
+
+export IP_PUBLICA_APP=35.172.193.171
+export RDS_ENDPOINT=monitoring-db.clccwmusmo2r.us-east-1.rds.amazonaws.com
+export RDS_DB=monitoring_db
+export RDS_USER=monitoring_user
+export RDS_PASS=isis2503
+export BROKER_IP=44.222.203.35           # IP pública de RabbitMQ
+
+
+
+sudo apt update && sudo apt install -y python3 python3-venv python3-pip git
+cd ~ 
+git clone https://github.com/valentinajtovar/ISIS2503-MonitoringAppSprint2.git
+cd ISIS2503-MonitoringAppSprint2
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install pika psycopg2-binary
+
+sudo apt-get update
+sudo apt-get install -y postgresql-client
+psql -h $RDS_ENDPOINT -U $RDS_USER -d postgres -p 5432
+
+
+CREATE DATABASE monitoring_db OWNER monitoring_user;
+
+isis2503
+
+\q
+
+python3 - <<'PY'
+import psycopg2
+conn = psycopg2.connect(
+    dbname="monitoring_db", user="monitoring_user", password="isis2503",
+    host="monitoring-db.clccwmusmo2r.us-east-1.rds.amazonaws.com", port=5432, connect_timeout=5
+)
+print("Conexión OK"); conn.close()
+PY
+
+
+# Revisa imports con Django inicializado
+python3 manage.py shell <<'PY'
+import importlib
+importlib.import_module("monitoring.urls"); print("monitoring.urls OK")
+importlib.import_module("orders.urls");     print("orders.urls OK")
+importlib.import_module("orders.views");    print("orders.views OK")
+PY
+
+# Checks
+python3 manage.py check
+
+# Crea y aplica migraciones
+python3 manage.py makemigrations orders
+python3 manage.py migrate
+
+
+export RABBIT_HOST=54.226.38.93
+export RABBIT_USER=monitoring_user
+export RABBIT_PASS=isis2503
+export RABBIT_EXCHANGE=order_events
+
+#revisar 
+source ~/.bashrc
+echo $RABBIT_HOST; echo $RABBIT_USER; echo $RABBIT_PASS; echo $RABBIT_EXCHANGE
+
+
+#pruebas
+python3 manage.py shell <<'PY'
+from orders.publisher import publish_order_created, publish_order_status_updated
+publish_order_created("ORD-1", "UPDATED")
+publish_order_status_updated("ORD-1", "SHIPPED", 1)
+print("Eventos publicados en RabbitMQ!")
+PY
+
+
+#revisar conexion
+nc -vz -w 3 54.226.38.93 5672
+
+
+
+python3 - <<'PY'
+import os, pika
+host = os.getenv("RABBIT_HOST","")
+user = os.getenv("RABBIT_USER","")
+pwd  = os.getenv("RABBIT_PASS","")
+port = int(os.getenv("RABBIT_PORT","5672"))
+vhost= os.getenv("RABBIT_VHOST","/")
+print("Trying:", host, port, vhost, user)
+
+params = pika.ConnectionParameters(
+    host=host,
+    port=port,
+    virtual_host=vhost,
+    credentials=pika.PlainCredentials(user, pwd),
+    connection_attempts=2,
+    retry_delay=1.0,
+    blocked_connection_timeout=5,
+    heartbeat=30,
+)
+try:
+    conn = pika.BlockingConnection(params)
+    print("✅ Conexión AMQP OK")
+    conn.close()
+except Exception as e:
+    print("❌ Conexión AMQP FAIL:", e)
+PY
+
+
+python3 manage.py runserver 0.0.0.0:8080
+
+
+
+#revisar conectividad
+nc -vz -w 2 $RDS_ENDPOINT 5432
+nc -vz -w 2 $BROKER_IP 5672
+
+
+#mandar eventos directo a broker
+python3 scripts/pump_events.py
+
+
+#trafico a endpoints
+
+chmod +x scripts/hit_api.sh
+APP_IP=<IP_PUBLICA_APP> N_ORDERS=5 N_UPDATES=20 ./scripts/hit_api.sh
+
