@@ -18,13 +18,12 @@ git pull origin master
 
 #inicio
 
-export IP_PUBLICA_APP=35.172.193.171
+export IP_PUBLICA_APP=54.226.157.190
 export RDS_ENDPOINT=monitoring-db.clccwmusmo2r.us-east-1.rds.amazonaws.com
 export RDS_DB=monitoring_db
 export RDS_USER=monitoring_user
 export RDS_PASS=isis2503
-export BROKER_IP=44.222.203.35           # IP pública de RabbitMQ
-
+export BROKER_IP=107.21.161.132          
 
 
 sudo apt update && sudo apt install -y python3 python3-venv python3-pip git
@@ -72,15 +71,34 @@ python3 manage.py makemigrations orders
 python3 manage.py migrate
 
 
-export RABBIT_HOST=54.226.38.93
+
+
+
+export RABBIT_HOST=52.5.42.86
 export RABBIT_USER=monitoring_user
 export RABBIT_PASS=isis2503
 export RABBIT_EXCHANGE=order_events
+export RABBIT_PORT=5672
+export RABBIT_VHOST=/
+
+nano ~/.bashrc   # revisar que solo haya una de cada uno
+
 
 #revisar 
 source ~/.bashrc
 echo $RABBIT_HOST; echo $RABBIT_USER; echo $RABBIT_PASS; echo $RABBIT_EXCHANGE
 
+python3 - <<'PY'
+import pika
+params = pika.ConnectionParameters(host="52.5.42.86", credentials=pika.PlainCredentials("monitoring_user","isis2503"))
+pika.BlockingConnection(params).close()
+print("OK")
+PY
+
+
+
+#revisar conexion 
+nc -vz -w 3 54.226.38.93 5672
 
 #pruebas
 python3 manage.py shell <<'PY'
@@ -91,8 +109,6 @@ print("Eventos publicados en RabbitMQ!")
 PY
 
 
-#revisar conexion
-nc -vz -w 3 54.226.38.93 5672
 
 
 
@@ -140,5 +156,5 @@ python3 scripts/pump_events.py
 #trafico a endpoints
 
 chmod +x scripts/hit_api.sh
-APP_IP=<IP_PUBLICA_APP> N_ORDERS=5 N_UPDATES=20 ./scripts/hit_api.sh
+APP_IP=$IP_PUBLICA_APP N_ORDERS=5 N_UPDATES=20 ./scripts/hit_api.sh
 
