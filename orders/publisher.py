@@ -58,13 +58,9 @@ def _publish(routing_key: str, payload: dict) -> None:
 def publish_order_created(order_id: str, status: str) -> None:
     _publish("order.created", {"order_id": order_id, "status": status})
 
-def publish_order_status_updated(
-    order_id: str,
-    status: str,
-    version: int,
-    meta: dict | None = None,   # << acepta meta opcional
-) -> None:
+def publish_order_status_updated(order_id: str, status: str, version: int, meta: dict | None = None):
     payload = {"order_id": order_id, "new_status": status, "version": int(version)}
     if meta:
         payload["meta"] = meta
     _publish("order.status.updated", payload)
+
