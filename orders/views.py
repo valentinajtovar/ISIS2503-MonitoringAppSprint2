@@ -21,6 +21,8 @@ def get_order(request, order_id: str):
     except Order.DoesNotExist:
         return HttpResponseNotFound("order not found")
 
+
+@csrf_exempt
 @require_POST
 def create_order(request):
     try:
