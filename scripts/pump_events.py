@@ -28,7 +28,7 @@ import pika
 import requests
 from urllib.parse import urljoin
 
-RABBIT_HOST = os.getenv("RABBIT_HOST", "127.0.0.1")
+RABBIT_HOST = os.getenv("RABBIT_HOST")
 RABBIT_PORT = int(os.getenv("RABBIT_PORT", "5672"))
 RABBIT_USER = os.getenv("RABBIT_USER", "guest")
 RABBIT_PASS = os.getenv("RABBIT_PASS", "guest")
