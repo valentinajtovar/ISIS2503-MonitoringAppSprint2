@@ -37,13 +37,24 @@
           <stringProp name="HTTPSampler.port">${port}</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
-          <stringProp name="HTTPSampler.path">orders</stringProp>
+          <stringProp name="HTTPSampler.path">/orders</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="Variables definidas por el Usuario">
-            <collectionProp name="Arguments.arguments"/>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+  &quot;id&quot;: &quot;ORD-TEST123&quot;,&#xd;
+  &quot;status&quot;: &quot;CREATED&quot;&#xd;
+}&#xd;
+&#xd;
+</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
           </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
@@ -55,6 +66,12 @@
               </elementProp>
             </collectionProp>
           </HeaderManager>
+          <hashTree/>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor">
+            <stringProp name="JSONPostProcessor.referenceNames">orderVersion</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$.version</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers">0</stringProp>
+          </JSONPostProcessor>
           <hashTree/>
         </hashTree>
       </hashTree>
@@ -73,7 +90,7 @@
           <stringProp name="HTTPSampler.domain">${host}</stringProp>
           <stringProp name="HTTPSampler.port">${port}</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">orders/{order_id}  </stringProp>
+          <stringProp name="HTTPSampler.path">/orders/ORD-TEST123</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -82,6 +99,13 @@
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
         </HTTPSamplerProxy>
+        <hashTree/>
+        <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor">
+          <stringProp name="JSONPostProcessor.referenceNames">olderVersion</stringProp>
+          <stringProp name="JSONPostProcessor.jsonPathExprs">$.version</stringProp>
+          <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+          <stringProp name="JSONPostProcessor.defaultValues">0</stringProp>
+        </JSONPostProcessor>
         <hashTree/>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="PUT Update Status Group">
@@ -100,13 +124,23 @@
           <stringProp name="HTTPSampler.port">${port}</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
-          <stringProp name="HTTPSampler.path">orders/{order_id}/status</stringProp>
+          <stringProp name="HTTPSampler.path">/orders/ORD-TEST123/status</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <stringProp name="HTTPSampler.method">PUT</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
-          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="Variables definidas por el Usuario">
-            <collectionProp name="Arguments.arguments"/>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+  &quot;status&quot;: &quot;${nextStatus}&quot;,&#xd;
+  &quot;version&quot;: ${__groovy((vars.get(&apos;orderVersion&apos;) ?: &apos;0&apos;) as int)}&#xd;
+}&#xd;
+</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
           </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
@@ -119,7 +153,66 @@
             </collectionProp>
           </HeaderManager>
           <hashTree/>
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">def s = vars.get(&apos;orderStatus&apos;) ?: &apos;CREATED&apos;
+def next = null
+
+switch(s) {
+  case &apos;CREATED&apos;:   next = &apos;UPDATED&apos;;   break
+  case &apos;UPDATED&apos;:   next = &apos;SHIPPED&apos;;   break
+  case &apos;SHIPPED&apos;:   next = &apos;DELIVERED&apos;; break
+  default:          next = s            // si ya es DELIVERED/CANCELLED, no cambia
+}
+
+vars.put(&apos;nextStatus&apos;, next)
+</stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
+          <DebugPostProcessor guiclass="TestBeanGUI" testclass="DebugPostProcessor" testname="Debug PostProcessor">
+            <boolProp name="displayJMeterProperties">false</boolProp>
+            <boolProp name="displayJMeterVariables">true</boolProp>
+            <boolProp name="displaySamplerProperties">true</boolProp>
+            <boolProp name="displaySystemProperties">false</boolProp>
+          </DebugPostProcessor>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="JSR223 PostProcessor">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="script">// Si hubo 409, refresca versión y reintenta 1 vez
+if (prev.getResponseCode() == &apos;409&apos;) {
+    log.warn(&apos;409 detectado; refrescando versión y reintentando PUT una vez&apos;)
+    // Llama sincrónicamente al GET para actualizar version
+    def getRes = org.apache.jmeter.protocol.http.sampler.HTTPSamplerFactory.newInstance()
+    getRes.setDomain(vars.get(&apos;host&apos;))
+    getRes.setPort(Integer.parseInt(vars.get(&apos;port&apos;)))
+    getRes.setProtocol(vars.get(&apos;protocol&apos;))
+    getRes.setPath(&quot;/orders/${vars.get(&apos;orderId&apos;)}&quot;)
+    getRes.setMethod(&quot;GET&quot;)
+    getRes.setUseKeepAlive(true)
+    def res = getRes.sample(context)
+    def json = new groovy.json.JsonSlurper().parseText(res.getResponseDataAsString())
+    vars.put(&apos;orderVersion&apos;, String.valueOf(json.version as int))
+
+    // Señala este sample como fallido para que un Retry Controller o un bucle controlado lo reprocese
+    prev.setSuccessful(false)
+}
+</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
         </hashTree>
+        <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON Extractor">
+          <stringProp name="JSONPostProcessor.referenceNames">orderVersion</stringProp>
+          <stringProp name="JSONPostProcessor.jsonPathExprs">$.version</stringProp>
+          <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
+          <stringProp name="JSONPostProcessor.defaultValues">${orderVersion}</stringProp>
+        </JSONPostProcessor>
+        <hashTree/>
       </hashTree>
       <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
