@@ -57,8 +57,9 @@
       </ThreadGroup>
       <hashTree>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="PUT update order">
-          <stringProp name="HTTPSampler.domain">13.221.127.93</stringProp>
+          <stringProp name="HTTPSampler.domain">13.218.172.103</stringProp>
           <stringProp name="HTTPSampler.port">8080</stringProp>
+          <stringProp name="HTTPSampler.protocol">HTTP</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
           <stringProp name="HTTPSampler.path">/orders/${orderId}/status</stringProp>
           <stringProp name="HTTPSampler.method">PUT</stringProp>

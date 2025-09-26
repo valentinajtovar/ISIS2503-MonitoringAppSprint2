@@ -3,6 +3,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from django.db import transaction, models
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotFound
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import Order
 from .publisher import publish_order_status_updated
@@ -31,6 +32,7 @@ def create_order(request):
     obj, created = Order.objects.get_or_create(id=oid, defaults={"status": status})
     return _json({"created": created, "id": obj.id, "status": obj.status, "version": obj.version}, 201 if created else 200)
 
+@csrf_exempt
 @require_http_methods(["PUT", "PATCH"])
 def update_status(request, order_id: str):
     """
